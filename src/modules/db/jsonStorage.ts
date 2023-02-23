@@ -20,7 +20,9 @@ class JSONStorage implements IJSONStorage {
   constructor() {
     let storageStr = "";
     try {
-      storageStr = fs.readFileSync(path.join(process.cwd(), "./assets/db/storage.json"), { encoding: "utf-8" });
+      storageStr = fs.readFileSync(path.join(process.cwd(), "./assets/db/storage.json"), {
+        encoding: "utf-8",
+      });
 
       const { time } = JSON.parse(storageStr);
 
@@ -35,7 +37,7 @@ class JSONStorage implements IJSONStorage {
     this.time = time;
 
     const data = JSON.stringify({ time: this.time.getTime() });
-    fs.writeFile(path.join(__dirname, "./storage.json"), data, (err) => {
+    fs.writeFile(path.join(process.cwd(), "./assets/db/storage.json"), data, (err) => {
       console.error(err);
     });
   }
