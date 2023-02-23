@@ -1,0 +1,12 @@
+query VolumeUpdates($number: Int) {
+  volumeUpdates(section: {id: 1}, page: {pageNumber: $number, pageSize: 1}){
+    content {
+      title
+      url
+      showTime
+      sectionId
+      projectId
+      volumeId
+    }
+  }
+}

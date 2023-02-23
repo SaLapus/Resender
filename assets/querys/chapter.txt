@@ -1,0 +1,7 @@
+query Chapter($id: Int) { 
+  chapter(chapter: {id: $id}){
+    title
+    id
+    parentChapterId
+  }
+}

@@ -1,0 +1,28 @@
+query Volume($id: Int) {
+    volume(volume: {id: $id}) {
+      id
+      url
+      fullUrl
+      type
+      title
+      shortName
+      status
+      covers {
+        url
+      }
+      annotation {
+        text
+      }
+      staff {
+        nickname
+        activityName
+      }
+      chapters {
+        title
+        id
+        parentChapterId
+        volumeId
+        publishDate
+      }
+    }
+}

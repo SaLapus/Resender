@@ -1,0 +1,8 @@
+query Project($id: Int) {
+    project(project: {id: $id}) {
+        id
+        url
+        title
+        shortDescription
+    }
+}
