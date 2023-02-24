@@ -18,19 +18,19 @@
     "@babel/core": "^7.14.8",
     "@babel/preset-env": "^7.14.8",
     "@babel/preset-typescript": "^7.14.5",
-    "@tsconfig/node-lts-strictest": "^18.12.1",
     "@types/jest": "^26.0.24",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
     "babel-jest": "^27.0.6",
     "eslint": "^7.14.0",
-    "jest": "^27.0.6"
+    "jest": "^27.0.6",
+    "discord.js": "^14.7.1",
+    "dotenv": "^10.0.0",
+    "typescript": "^4.5.2"
   },
   "dependencies": {
     "@types/needle": "^2.5.1",
-    "discord.js": "^14.7.1",
-    "dotenv": "^10.0.0",
     "needle": "^2.6.0",
-    "typescript": "^4.5.2"
+    "@tsconfig/node-lts-strictest": "^18.12.1"
   }
 }
