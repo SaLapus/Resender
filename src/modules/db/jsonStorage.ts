@@ -3,16 +3,6 @@ import path from "path";
 
 import type { IJSONStorage } from "../../types/db/IJSONStorage";
 
-export default function getDB(): JSONStorage {
-  let STORAGE: JSONStorage | undefined;
-
-  return (() => {
-    if (!STORAGE) STORAGE = new JSONStorage();
-
-    return STORAGE;
-  })();
-}
-
 // Асинхронная работа с файлами, кроме конструктора
 class JSONStorage implements IJSONStorage {
   private time: Date = new Date();
@@ -46,3 +36,9 @@ class JSONStorage implements IJSONStorage {
     return this.time;
   }
 }
+
+export default ((): (() => JSONStorage) => {
+  const STORAGE = new JSONStorage();
+
+  return () => STORAGE;
+})();
