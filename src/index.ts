@@ -28,6 +28,7 @@ const DB: IJSONStorage = getDB();
 const UpdatesListener = new Listener();
 
 UpdatesListener.on("update", updateHandler);
+UpdatesListener.shedule();
 
 async function updateHandler(
   updates: APITypes.VolumeUpdates.Content | APITypes.VolumeUpdates.Content[]
