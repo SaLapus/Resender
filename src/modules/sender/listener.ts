@@ -92,6 +92,8 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
       if (relevance) updates.push(update);
     } while (relevance);
 
+    updates.forEach((u) => console.log("UPDATE OF: ", u.title, " at ", u.showTime));
+
     return updates;
   }
 
