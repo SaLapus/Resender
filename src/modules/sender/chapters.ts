@@ -1,37 +1,39 @@
 import type * as APITypes from "../../types/api";
 
-export default class Chapters {
-  data: (APITypes.ParentChapter | APITypes.Chapter)[];
+export default function Chapters(
+  chapters: APITypes.Chapter[],
+  dateToCheck: Date
+): APITypes.ParentChapter[] {
+  const relChaps = filter(chapters, dateToCheck);
 
-  constructor(chapters: APITypes.Chapter[] | undefined) {
-    this.data = sortChapters(chapters);
-  }
+  const sortedChaps = sortChapters(relChaps);
 
-  filter(oldness: number | null | undefined): APITypes.ParentChapter[] {
-    if (!oldness)
-      return [this.data.filter((ch) => ch.publishDate !== null).pop()] as APITypes.ParentChapter[];
-
-    return this.data.filter(
-      (ch) => new Date(ch.publishDate) >= new Date(oldness)
-    ) as APITypes.ParentChapter[];
-  }
+  return sortedChaps;
 }
 
-function sortChapters(chapters: APITypes.Chapter[] | undefined) {
+function filter(chapters: APITypes.Chapter[], dateToCheck: Date): APITypes.Chapter[] {
+  const chs = chapters.filter((ch) => ch.publishDate !== null);
+
+  if (chs.length === 0) return chs;
+
+  const relevantChs = chs.filter((ch) => new Date(ch.publishDate) >= dateToCheck);
+
+  return relevantChs;
+}
+
+function sortChapters(chapters: APITypes.Chapter[]) {
   const temp: Map<number, APITypes.ParentChapter> = new Map();
 
-  if (!chapters) return [];
+  chapters.forEach((chapter) => {
+    if (!chapter.parentChapterId) temp.set(chapter.id, Object.assign({ childs: [] }, chapter));
+  });
 
-  let chapter: APITypes.Chapter | undefined;
-  while (chapters.length !== 0) {
-    chapter = chapters.shift();
-    if (chapter) {
-      if (chapter.parentChapterId) {
-        if (temp.has(chapter.parentChapterId))
-          temp.get(chapter.parentChapterId)?.childs.push(chapter);
-      } else temp.set(chapter.id, Object.assign({}, { childs: [] }, chapter));
+  chapters.forEach((chapter) => {
+    if (chapter.parentChapterId) {
+      const parent = temp.get(chapter.parentChapterId);
+      parent?.childs.push(chapter);
     }
-  }
+  });
 
-  return [...temp.values()];
+  return Array.from(temp.values());
 }
