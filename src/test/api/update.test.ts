@@ -3,8 +3,6 @@ env.config();
 
 import { getUpdate } from "../../modules/api/api";
 
-process.env.API_LOOPING = undefined;
-
 console.log = () => {
   return;
 };
