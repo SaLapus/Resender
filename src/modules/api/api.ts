@@ -67,7 +67,7 @@ export async function getUpdate(offset = 1): Promise<APITypes.VolumeUpdates.Cont
 
     if (responce.errored) throw responce.errored;
     if (responce.statusCode && !(200 <= responce.statusCode && responce.statusCode < 300))
-      throw `STATUS: ${responce.statusCode}`;
+      throw `STATUS: ${responce.statusCode}\n BODY: ${responce.body}`;
 
     return responce.body.data.volumeUpdates?.content?.shift();
   } catch (error) {
