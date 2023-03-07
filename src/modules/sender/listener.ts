@@ -27,29 +27,17 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
   }
 
   shedule(): void {
-    let timeout = new Date(0).setUTCHours(0, 10) - (Date.now() % new Date(0).setUTCHours(0, 15));
+    const timeout = new Date(0).setUTCHours(0, 5) - (Date.now() % new Date(0).setUTCHours(0, 5));
 
-    if (timeout < 0) {
-      timeout = new Date(0).setUTCHours(0, 5) + timeout;
+    console.log("Start at ", new Date(new Date().getTime() + timeout));
 
-      console.log("Start at ", new Date(new Date().getTime() + timeout));
+    setTimeout(() => {
+      this.checkUpdates();
 
-      setTimeout(() => {
+      this.IntervalID = setInterval(() => {
         setTimeout(() => this.checkUpdates(), 30 * 1000); // Задержка для избежания проверки до релиза
-
-        this.IntervalID = setInterval(() => {
-          setTimeout(() => this.checkUpdates(), 30 * 1000); // Задержка для избежания проверки до релиза
-        }, 5 * 60 * 1000);
-      }, timeout);
-    } else {
-      console.log("Start at ", new Date(new Date().getTime() + timeout));
-
-      setTimeout(() => {
-        this.IntervalID = setInterval(() => {
-          setTimeout(() => this.checkUpdates(), 30 * 1000); // Задержка для избежания проверки до релиза
-        }, 5 * 60 * 1000);
-      }, timeout);
-    }
+      }, 5 * 60 * 1000);
+    }, timeout);
   }
 
   async checkUpdates(): Promise<void> {

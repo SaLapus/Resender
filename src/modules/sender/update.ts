@@ -1,7 +1,7 @@
 import { API } from "./../api";
 import Chapters from "./chapters";
 
-import type { Annotation, ParentChapter, Volume, Worker } from "./../../types/api";
+import type { Annotation, Chapter, ParentChapter, Volume, Worker } from "./../../types/api";
 import type * as ReSender from "./../../types/resender";
 
 export default class UpdateInfoLoader {
@@ -10,7 +10,7 @@ export default class UpdateInfoLoader {
     volumeID: number;
   } = { projectID: 0, volumeID: 0 }; //заглушка
 
-  lastUpdateDate: Date = new Date(0);
+  lastUpdateDate: Date;
 
   constructor(
     { projectId, volumeId }: { projectId: number; volumeId: number },
@@ -42,7 +42,7 @@ export default class UpdateInfoLoader {
     update.setUpdateURL(volume.fullUrl);
     update.setCoverURL(volume.covers?.shift()?.url);
 
-    update.chapters = new Chapters(volume.chapters).filter(this.lastUpdateDate.getTime());
+    update.setChapters(volume.chapters, this.lastUpdateDate);
 
     return update;
   }
@@ -56,7 +56,7 @@ class Update implements ReSender.Update {
   meta = { projectID: 0, volumeID: 0 }; //заглушка
 
   title = "";
-  chapters?: ParentChapter[] = undefined;
+  chapters: ParentChapter[] = [];
   annotation = "";
   staff: {
     [name: string]: string[];
@@ -103,7 +103,7 @@ class Update implements ReSender.Update {
   }
 
   setStatus(status: string | undefined) {
-    if (status) status.search(/done|decor/) >= 0 && (this.doneStatus = true);
+    if (status && status.search(/done|decor/) >= 0) this.doneStatus = true;
   }
 
   setUpdateURL(url: string | undefined) {
@@ -112,6 +112,10 @@ class Update implements ReSender.Update {
 
   setCoverURL(url: string | undefined) {
     if (url) this.coverURL = url;
+  }
+
+  setChapters(chapters: Chapter[] | undefined, date: Date) {
+    if (chapters && date) this.chapters = Chapters(chapters, date);
   }
 
   /////////////////////////////////////////////////////
@@ -128,15 +132,14 @@ class Update implements ReSender.Update {
   }
 
   toString() {
-    const parsedChapters = this.chapters
-      ?.map((ch) => ch.title)
-      .filter((_, index, array) => index === 0 || index === array.length - 1)
-      .join(" - ");
+    const chaptersTitles = this.chapters.map((ch) => ch.title);
+    const chaptersStr = [chaptersTitles.shift(), chaptersTitles.pop()].join(" - ");
+
     const staff = Object.entries(this.staff)
       .map(([role, workers]) => `${role}: *${workers.join("*, *")}*`)
       .join("\n");
 
-    return `**${this.title}** - ${parsedChapters}
+    return `**${this.title}** - ${chaptersStr}
 ${
   this.doneStatus
     ? `
