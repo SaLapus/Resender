@@ -3,5 +3,6 @@ export interface Chapter {
   id: number;
   parentChapterId?: number | null;
   volumeId: number;
-  publishDate: string;
+  publishDate?: string;
+  published?: boolean;
 }
