@@ -23,6 +23,7 @@ query Volume($id: Int) {
         parentChapterId
         volumeId
         publishDate
+        published
       }
     }
 }
