@@ -12,11 +12,11 @@ export default function Chapters(
 }
 
 function filter(chapters: APITypes.Chapter[], dateToCheck: Date): APITypes.Chapter[] {
-  const chs = chapters.filter((ch) => ch.publishDate !== null);
+  const chs = chapters.filter((ch) => !!ch.publishDate);
 
   if (chs.length === 0) return chs;
 
-  const relevantChs = chs.filter((ch) => new Date(ch.publishDate) >= dateToCheck);
+  const relevantChs = chs.filter((ch) => new Date(ch.publishDate as string) >= dateToCheck);
 
   return relevantChs;
 }
