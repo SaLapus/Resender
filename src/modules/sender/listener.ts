@@ -30,7 +30,7 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
   shedule(): void {
     const timeout = new Date(0).setUTCHours(0, 5) - (Date.now() % new Date(0).setUTCHours(0, 5));
 
-    console.log("Start at ", new Date(new Date().getTime() + timeout).toUTCString());
+    console.log("Start at ", new Date(new Date().getTime() + timeout).toString());
 
     setTimeout(() => {
       this.checkUpdates();
