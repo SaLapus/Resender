@@ -28,7 +28,7 @@ class JSONStorage implements IJSONStorage {
 
     const data = JSON.stringify({ time: this.time.getTime() });
     fs.writeFile(path.join(process.cwd(), "./assets/db/storage.json"), data, (err) => {
-      console.error(err);
+      if (err) console.error(err);
     });
   }
 
