@@ -1,157 +1,123 @@
 import { API } from "./../api";
 import Chapters from "./chapters";
 
-import type { Annotation, Chapter, ParentChapter, Volume, Worker } from "./../../types/api";
-import type * as ReSender from "./../../types/resender";
+import type { Chapter, ParentChapter, Worker } from "./../../types/api";
 
-export default class UpdateInfoLoader {
+interface UpdateInfoArgs {
+  projectID: number;
+  volumeID: number;
+  dateFrom: Date;
+}
+
+export interface UpdateInfo {
+  update: string;
+  coverBuffer: Buffer | undefined;
   info: {
     projectID: number;
     volumeID: number;
-  } = { projectID: 0, volumeID: 0 }; //заглушка
+    dateFrom: Date;
 
-  lastUpdateDate: Date;
-
-  constructor(
-    { projectId, volumeId }: { projectId: number; volumeId: number },
-    TimeOfLastPost: Date
-  ) {
-    if (!projectId || !volumeId || !TimeOfLastPost)
-      throw new Error(`NO DATA FOR UPDATE_CLIENT\nPID: ${projectId} VID: ${volumeId}`);
-
-    this.info = {
-      projectID: projectId,
-      volumeID: volumeId,
-    };
-
-    this.lastUpdateDate = TimeOfLastPost;
-  }
-
-  async createUpdate(): Promise<ReSender.Update> {
-    const update = new Update(this.info);
-
-    const volume = await this.loadVolumeInfo();
-
-    update.setTitle(volume.title);
-
-    await update.setAnnotation(volume.annotation, this.info.projectID);
-
-    update.setStaff(volume.staff);
-    update.setStatus(volume.status);
-
-    update.setUpdateURL(volume.fullUrl);
-    update.setCoverURL(volume.covers?.shift()?.url);
-
-    update.setChapters(volume.chapters, this.lastUpdateDate);
-
-    return update;
-  }
-
-  private async loadVolumeInfo(): Promise<Volume> {
-    return await API.getVolume(this.info.volumeID);
-  }
+    title: string;
+    chapters: string;
+    doneStatus: string;
+    url: string;
+    annotation: string;
+    staff: string;
+  };
 }
 
-class Update implements ReSender.Update {
-  meta = { projectID: 0, volumeID: 0 }; //заглушка
+export default async function getTextUpdate({
+  projectID,
+  volumeID,
+  dateFrom,
+}: UpdateInfoArgs): Promise<UpdateInfo> {
+  if (!(projectID && volumeID && dateFrom))
+    throw `MISSING INFO IN project: ${projectID} volume: ${volumeID} dateFrom:${dateFrom}`;
+  const volume = await API.getVolume(volumeID);
+  const project = await API.getProject(projectID);
 
-  title = "";
-  chapters: ParentChapter[] = [];
-  annotation = "";
-  staff: {
-    [name: string]: string[];
-  } = {};
-  doneStatus = false;
+  const title: string = getTitle(volume.title, project.title);
+  const chapters: string = getChapters(volume.chapters, dateFrom);
+  const doneStatus: string = getStatus(volume.status);
+  const url: string = getURL(volume.url);
+  const annotation: string = getAnnotation(volume.annotation?.text, project.shortDescription);
+  const staff: string = getStaff(volume.staff);
+  const cover = await getCover(volume.covers?.shift()?.url);
 
-  updateURL = "";
-  coverURL = "";
+  const head = [title, chapters].filter((e) => !!e).join(" - ");
+  const update = [head, doneStatus, url, annotation, staff]
+    .filter((paragraph) => !!paragraph)
+    .join("\n\n");
 
-  constructor({ projectID, volumeID }: { projectID: number; volumeID: number }) {
-    this.meta = { projectID, volumeID };
+  return {
+    update,
+    coverBuffer: cover,
+    info: {
+      projectID,
+      volumeID,
+      dateFrom,
+      title,
+      chapters,
+      doneStatus,
+      url,
+      annotation,
+      staff,
+    },
+  };
+}
+
+function getTitle(volumeTitle: string | undefined, projectTitle: string): string {
+  const title = volumeTitle ? volumeTitle : projectTitle;
+  return `**${title}**`;
+}
+
+function getChapters(chapters: Chapter[] | undefined, date: Date): string {
+  let sortedChapters: ParentChapter[] = [];
+  if (chapters && date) sortedChapters = sortedChapters.concat(Chapters(chapters, date));
+
+  sortedChapters.splice(1, sortedChapters.length - 2);
+
+  return sortedChapters.map((ch) => ch.title).join(" - ");
+}
+
+function getStatus(status: string | undefined): string {
+  if (status && status.search(/done|decor/) >= 0)
+    return "**ЗАВЕРШЕНО**\n" + `<@&${process.env["ROLE_TO_PING_ID"]}>`;
+  return "";
+}
+
+function getURL(url: string) {
+  return `:link: [Читать](https://${url})`;
+}
+
+function getAnnotation(volumeAnnot: string | undefined, projectAnnot: string | undefined): string {
+  if (volumeAnnot) return volumeAnnot.replace(/<\/?.+?>/g, "").trim();
+  else if (projectAnnot) {
+    return projectAnnot;
   }
+  return "";
+}
 
-  setTitle(t: string | undefined) {
-    this.title = t ? t.trim() : "";
-  }
+function getStaff(staff: Worker[] | undefined): string {
+  if (staff) {
+    const staffMap: Map<string, string[]> = new Map();
 
-  async setAnnotation(annotation: Annotation | undefined, projectId: number) {
-    if (annotation && annotation.text) {
-      const text = annotation.text.replace(/<\/?.+?>/g, "").trim();
-      if (text) {
-        this.annotation = text;
-        return;
-      }
+    for (const member of staff) {
+      if (!member.activityName) continue;
+
+      if (staffMap.has(member.activityName))
+        staffMap.get(member.activityName)?.push(member.nickname.trim());
+      else staffMap.set(member.activityName, [member.nickname]);
     }
-    this.annotation = (await API.getProject(projectId))?.shortDescription ?? "";
-  }
 
-  setStaff(staff: Worker[] | undefined) {
-    if (staff) {
-      const staffMap: Map<string, string[]> = new Map();
-
-      for (const member of staff) {
-        if (!member.activityName) continue;
-
-        if (staffMap.has(member.activityName))
-          staffMap.get(member.activityName)?.push(member.nickname.trim());
-        else staffMap.set(member.activityName, [member.nickname]);
-      }
-
-      for (const [activity, members] of staffMap)
-        Object.assign(this.staff, { [activity]: members });
-    }
-  }
-
-  setStatus(status: string | undefined) {
-    if (status && status.search(/done|decor/) >= 0) this.doneStatus = true;
-  }
-
-  setUpdateURL(url: string | undefined) {
-    this.updateURL = `https://${url || "ruranobe.ru/r/"}`;
-  }
-
-  setCoverURL(url: string | undefined) {
-    if (url) this.coverURL = url;
-  }
-
-  setChapters(chapters: Chapter[] | undefined, date: Date) {
-    if (chapters && date) this.chapters = Chapters(chapters, date);
-  }
-
-  /////////////////////////////////////////////////////
-  async getCover(): Promise<Buffer> {
-    return API.getCoverStream(this.coverURL);
-  }
-
-  toObject(): ReSender.Update {
-    const o = {};
-    for (const [key, value] of Object.entries(this)) {
-      Object.assign(o, { [key]: value });
-    }
-    return o as ReSender.Update;
-  }
-
-  toString() {
-    const chaptersTitles = this.chapters.map((ch) => ch.title);
-    const chaptersStr = [chaptersTitles.shift(), chaptersTitles.pop()].join(" - ");
-
-    const staff = Object.entries(this.staff)
+    return Array.from(staffMap.entries())
       .map(([role, workers]) => `${role}: *${workers.join("*, *")}*`)
       .join("\n");
-
-    return `**${this.title}** - ${chaptersStr}
-${
-  this.doneStatus
-    ? `
-**ЗАВЕРШЕНО**
-<@&${process.env["ROLE_TO_PING_ID"]}>
-`
-    : ""
-}
-:link: [Читать](${this.updateURL})
-
-${this.annotation}
-
-${staff}`;
   }
+  return "";
+}
+
+async function getCover(url: string | undefined): Promise<Buffer | undefined> {
+  if (url) return await API.getCoverStream(url);
+  return;
 }

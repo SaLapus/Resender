@@ -1,6 +1,5 @@
 import * as Discord from "discord.js";
 import { Events, GatewayIntentBits } from "discord.js";
-import needle from "needle";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -11,7 +10,8 @@ import type { IJSONStorage } from "./types/db";
 import getDB from "./modules/db";
 
 import Listener from "./modules/sender/listener";
-import Update from "./modules/sender/update";
+import type { UpdateInfo } from "./modules/sender/update";
+import getTextUpdate from "./modules/sender/update";
 
 const hook: Discord.WebhookClient = new Discord.WebhookClient({
   id:
@@ -30,24 +30,26 @@ const UpdatesListener = new Listener();
 UpdatesListener.on("update", updateHandler);
 UpdatesListener.shedule();
 
-async function updateHandler(
-  updates: APITypes.VolumeUpdates.Content | APITypes.VolumeUpdates.Content[]
-): Promise<void> {
+async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise<void> {
   updates = updates instanceof Array ? updates : [updates];
 
   for (const u of updates) {
     if (!u) continue;
 
     try {
-      const time = DB.getTime();
+      const dateFrom = DB.getTime();
 
-      if (!time) throw new Error("SL ERROR: BAD TIME --- DROP UPDATE");
+      if (!dateFrom) throw new Error("SL ERROR: BAD TIME --- DROP UPDATE");
 
-      const title = new Update(u, time);
+      const messageContent = await getTextUpdate({
+        projectID: u.projectId,
+        volumeID: u.volumeId,
+        dateFrom,
+      });
 
-      const message = await sendUpdate(title);
+      const message = await sendUpdate(messageContent);
 
-      editMessage(message.id, title);
+      editMessage(message, messageContent);
 
       DB.setTime(new Date(u.showTime));
     } catch (e) {
@@ -56,33 +58,35 @@ async function updateHandler(
   }
 }
 
-async function sendUpdate(title: Update): Promise<Discord.APIMessage> {
-  const update = await title.createUpdate();
-  const text = update.toString();
-  const imgBuffer = await update.getCover();
+async function sendUpdate(title: UpdateInfo): Promise<Discord.APIMessage> {
+  const { update, coverBuffer } = title;
 
-  return await hook.send({ content: text, files: [imgBuffer] });
+  const message = {
+    content: update,
+    allowedMentions: {
+      roles: [process.env["ROLE_TO_PING_ID"] as string],
+    },
+  };
+  if (coverBuffer) Object.assign(message, { files: [coverBuffer] });
+
+  return await hook.send(message);
 }
 
-function editMessage(messageID: string, title: Update) {
-  const interval = setInterval(async () => {
-    const update = await title.createUpdate();
+function editMessage(message: Discord.APIMessage, updateInfo: UpdateInfo) {
+  const interval = setTimeout(async () => {
+    const { update } = await getTextUpdate({
+      projectID: updateInfo.info.projectID,
+      volumeID: updateInfo.info.volumeID,
+      dateFrom: updateInfo.info.dateFrom,
+    });
 
-    const data = {
-      content: update.toString(),
-      allowed_mentions: {
-        roles: [process.env["ROLE_TO_PING_ID"]],
+    await hook.editMessage(message as unknown as Discord.Message, {
+      content: update,
+      allowedMentions: {
+        roles: [process.env["ROLE_TO_PING_ID"] as string],
       },
-    };
-
-    needle.patch(
-      `https://discord.com/api/webhooks/${hook.id}/${hook.token}/messages/${messageID}`,
-      data,
-      (_err, res) => {
-        console.log(`EDIT WEBHOOK MESSAGE STATUS: ${res.statusCode}`);
-      }
-    );
-  }, 15 * 60 * 1000);
+    });
+  }, 5 * 1000);
 
   setTimeout(() => clearInterval(interval), new Date(0).setHours(4, 1));
 }

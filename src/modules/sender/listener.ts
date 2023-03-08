@@ -21,8 +21,9 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
 
   async getLastUpdate(): Promise<void> {
     const u = await API.getUpdate(1);
+
     if (u) {
-      this.emit("update", u);
+      this.emit("update", [u]);
     }
   }
 
@@ -41,7 +42,7 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
   }
 
   async checkUpdates(): Promise<void> {
-    let updates = await this.getAllUpdates();
+    const updates = await this.getAllUpdates();
 
     if (updates.length === 0) {
       return;
@@ -51,11 +52,11 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
 
     for (const u of updates) titles.set(`${u.projectId}_${u.volumeId}`, u);
 
-    updates = [...titles.values()].sort(
+    const sortedUpdates = [...titles.values()].sort(
       (t1, t2) => new Date(t1.showTime).getTime() - new Date(t2.showTime).getTime()
     );
 
-    this.emit("update", updates);
+    this.emit("update", sortedUpdates);
   }
 
   stop(): void {
