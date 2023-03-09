@@ -31,8 +31,6 @@ UpdatesListener.on("update", updateHandler);
 UpdatesListener.shedule();
 
 async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise<void> {
-  updates = updates instanceof Array ? updates : [updates];
-
   for (const u of updates) {
     if (!u) continue;
 
@@ -69,11 +67,13 @@ async function sendUpdate(title: UpdateInfo): Promise<Discord.APIMessage> {
   };
   if (coverBuffer) Object.assign(message, { files: [coverBuffer] });
 
+  console.log("SENDING " + title.info.title);
+
   return await hook.send(message);
 }
 
 function editMessage(message: Discord.APIMessage, updateInfo: UpdateInfo) {
-  const interval = setTimeout(async () => {
+  const interval = setInterval(async () => {
     const { update } = await getTextUpdate({
       projectID: updateInfo.info.projectID,
       volumeID: updateInfo.info.volumeID,
@@ -86,7 +86,7 @@ function editMessage(message: Discord.APIMessage, updateInfo: UpdateInfo) {
         roles: [process.env["ROLE_TO_PING_ID"] as string],
       },
     });
-  }, 5 * 1000);
+  }, 15 * 60 * 1000);
 
   setTimeout(() => clearInterval(interval), new Date(0).setHours(4, 1));
 }
