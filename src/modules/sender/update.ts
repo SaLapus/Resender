@@ -39,7 +39,7 @@ export default async function getTextUpdate({
   const title: string = getTitle(volume.title, project.title);
   const chapters: string = getChapters(volume.chapters, dateFrom);
   const doneStatus: string = getStatus(volume.status);
-  const url: string = getURL(volume.url);
+  const url: string = getURL(volume.fullUrl, project.fullUrl);
   const annotation: string = getAnnotation(volume.annotation?.text, project.shortDescription);
   const staff: string = getStaff(volume.staff);
   const cover = await getCover(volume.covers?.shift()?.url);
@@ -86,14 +86,16 @@ function getStatus(status: string | undefined): string {
   return "";
 }
 
-function getURL(url: string) {
+function getURL(volumeUrl: string | undefined, projectUrl: string | undefined) {
+  const url = volumeUrl ?? projectUrl ?? "ruranobe.ru";
   return `:link: [Читать](https://${url})`;
 }
 
 function getAnnotation(volumeAnnot: string | undefined, projectAnnot: string | undefined): string {
-  if (volumeAnnot) return volumeAnnot.replace(/<\/?.+?>/g, "").trim();
+  const volumeA = volumeAnnot?.replace(/<\/?.+?>/g, "").trim();
+  if (volumeA) return volumeA;
   else if (projectAnnot) {
-    return projectAnnot;
+    return projectAnnot.replace(/<\/?.+?>/g, "").trim();
   }
   return "";
 }
