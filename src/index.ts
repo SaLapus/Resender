@@ -34,25 +34,21 @@ async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise
   for (const u of updates) {
     if (!u) continue;
 
-    try {
-      const dateFrom = DB.getTime();
+    const dateFrom = DB.getTime();
 
-      if (!dateFrom) throw new Error("SL ERROR: BAD TIME --- DROP UPDATE");
+    if (!dateFrom) throw new Error("SL ERROR: BAD TIME --- DROP UPDATE");
 
-      const messageContent = await getTextUpdate({
-        projectID: u.projectId,
-        volumeID: u.volumeId,
-        dateFrom,
-      });
+    const messageContent = await getTextUpdate({
+      projectID: u.projectId,
+      volumeID: u.volumeId,
+      dateFrom,
+    });
 
-      const message = await sendUpdate(messageContent);
+    const message = await sendUpdate(messageContent);
 
-      editMessage(message, messageContent);
+    editMessage(message, messageContent);
 
-      DB.setTime(new Date(u.showTime));
-    } catch (e) {
-      console.error(e);
-    }
+    DB.setTime(new Date(u.showTime));
   }
 }
 

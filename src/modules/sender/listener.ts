@@ -36,7 +36,7 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
       this.checkUpdates();
 
       this.IntervalID = setInterval(() => {
-        setTimeout(() => this.checkUpdates(), 30 * 1000); // Задержка для избежания проверки до релиза
+        setTimeout(() => this.checkUpdates(), 2 * 60 * 1000); // Задержка для избежания проверки до релиза
       }, 5 * 60 * 1000);
     }, timeout);
   }
