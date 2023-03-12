@@ -42,21 +42,25 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
   }
 
   async checkUpdates(): Promise<void> {
-    const updates = await this.getAllUpdates();
+    try {
+      const updates = await this.getAllUpdates();
 
-    if (updates.length === 0) {
+      if (updates.length === 0) {
+        return;
+      }
+
+      const titles: Map<string, APITypes.VolumeUpdates.Content> = new Map();
+
+      for (const u of updates) titles.set(`${u.projectId}_${u.volumeId}`, u);
+
+      const sortedUpdates = [...titles.values()].sort(
+        (t1, t2) => new Date(t1.showTime).getTime() - new Date(t2.showTime).getTime()
+      );
+
+      this.emit("update", sortedUpdates);
+    } catch (e) {
       return;
     }
-
-    const titles: Map<string, APITypes.VolumeUpdates.Content> = new Map();
-
-    for (const u of updates) titles.set(`${u.projectId}_${u.volumeId}`, u);
-
-    const sortedUpdates = [...titles.values()].sort(
-      (t1, t2) => new Date(t1.showTime).getTime() - new Date(t2.showTime).getTime()
-    );
-
-    this.emit("update", sortedUpdates);
   }
 
   stop(): void {

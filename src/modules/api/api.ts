@@ -26,6 +26,7 @@ export async function getProject(id: number): Promise<APITypes.Project> {
       },
       {
         content_type: "application/json",
+        timeout: 20000
       }
     );
 
@@ -62,6 +63,7 @@ export async function getUpdate(offset = 1): Promise<APITypes.VolumeUpdates.Cont
       },
       {
         content_type: "application/json",
+        timeout: 20000
       }
     );
 
@@ -99,6 +101,7 @@ export async function getVolume(id: number): Promise<APITypes.Volume> {
       },
       {
         content_type: "application/json",
+        timeout: 20000
       }
     );
 
