@@ -58,7 +58,7 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
       for (const u of updates) titles.set(`${u.projectId}_${u.volumeId}`, u);
 
       const sortedUpdates = [...titles.values()].sort(
-        (t1, t2) => new Date(t1.showTime).getTime() - new Date(t2.showTime).getTime()
+        (t1, t2) => new Date(t2.showTime).getTime() - new Date(t1.showTime).getTime() 
       );
 
       this.emit("update", sortedUpdates);

@@ -2,6 +2,8 @@ import * as Discord from "discord.js";
 import { Events, GatewayIntentBits } from "discord.js";
 import * as dotenv from "dotenv";
 
+import { exec } from "node:child_process";
+
 dotenv.config();
 
 import type * as APITypes from "./types/api";
@@ -97,6 +99,24 @@ const RuRaColor = new Discord.Client({
   ],
 });
 
+RuRaColor.on(Events.ClientReady, () => {
+  let flag = false;
+  exec('git log -1 --pretty=format:"%H - %an, %ar"', (err, stdout, stderr) => {
+    if (err) {
+      console.error(err);
+    }
+    if (!flag && stdout) {
+      console.log("START RESENDER V.: " + stdout);
+
+      process.env["COMMIT_INFO"] = stdout;
+      flag = true;
+    }
+    if (stderr) {
+      console.error(stderr);
+    }
+  });
+});
+
 RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
   if (message.channel.id !== "800044270370684958") return;
 
@@ -113,6 +133,13 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
       console.log(es.map((e) => e.emoji.name).join("  ") ?? "NO EMOJIS");
     })
     .catch(console.error);
+});
+
+RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
+  if (message.channel.id !== "467084051027853324") return;
+  if (message.content !== "version") return;
+
+  message.reply(process.env["COMMIT_INFO"] ?? "");
 });
 
 RuRaColor.login(process.env["BOT_RURACOLOR_TOKEN"]);
