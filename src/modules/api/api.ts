@@ -1,5 +1,6 @@
 import * as fs from "fs/promises";
 import path from "path";
+import { inspect } from "util";
 
 import needle from "needle";
 
@@ -26,7 +27,7 @@ export async function getProject(id: number): Promise<APITypes.Project> {
       },
       {
         content_type: "application/json",
-        timeout: 20000
+        timeout: 20000,
       }
     );
 
@@ -63,13 +64,13 @@ export async function getUpdate(offset = 1): Promise<APITypes.VolumeUpdates.Cont
       },
       {
         content_type: "application/json",
-        timeout: 20000
+        timeout: 20000,
       }
     );
 
     if (responce.errored) throw responce.errored;
     if (responce.statusCode && !(200 <= responce.statusCode && responce.statusCode < 300))
-      throw `STATUS: ${responce.statusCode}\n BODY: ${responce.body}`;
+      throw `STATUS: ${responce.statusCode}\n RESPONCE: ${inspect(responce, false, 3)}`;
 
     if (!responce.body.data.volumeUpdates?.content) throw "NO UPDATES CONTENT";
 
@@ -101,7 +102,7 @@ export async function getVolume(id: number): Promise<APITypes.Volume> {
       },
       {
         content_type: "application/json",
-        timeout: 20000
+        timeout: 20000,
       }
     );
 
