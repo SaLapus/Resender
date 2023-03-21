@@ -101,7 +101,7 @@ const RuRaColor = new Discord.Client({
 
 RuRaColor.on(Events.ClientReady, () => {
   let flag = false;
-  exec('git log -1 --pretty=format:"%H - %an, %ar"', (err, stdout, stderr) => {
+  exec('git log -1 --pretty=format:"%H - %an, %ad"', (err, stdout, stderr) => {
     if (err) {
       console.error(err);
     }

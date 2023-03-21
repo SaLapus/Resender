@@ -45,8 +45,6 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
 
   async checkUpdates(): Promise<void> {
     try {
-      console.log("CHECK FOR UPDATES");
-
       const updates = await this.getAllUpdates();
 
       if (updates.length === 0) {
