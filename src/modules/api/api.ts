@@ -1,6 +1,5 @@
 import * as fs from "fs/promises";
 import path from "path";
-import { inspect } from "util";
 
 import needle from "needle";
 
@@ -40,9 +39,7 @@ export async function getProject(id: number): Promise<APITypes.Project> {
     console.error(`PROJECT REQUEST`);
     console.error(`ID: ${id}`);
 
-    console.error(error);
-
-    throw new Error();
+    throw error;
   }
 }
 
@@ -70,7 +67,7 @@ export async function getUpdate(offset = 1): Promise<APITypes.VolumeUpdates.Cont
 
     if (responce.errored) throw responce.errored;
     if (responce.statusCode && !(200 <= responce.statusCode && responce.statusCode < 300))
-      throw `STATUS: ${responce.statusCode}\n RESPONCE: ${inspect(responce, false, 3)}`;
+      throw `STATUS: ${responce.statusCode}\n RESPONCE: ${responce.body}`;
 
     if (!responce.body.data.volumeUpdates?.content) throw "NO UPDATES CONTENT";
 
@@ -78,9 +75,7 @@ export async function getUpdate(offset = 1): Promise<APITypes.VolumeUpdates.Cont
   } catch (error) {
     console.error(`UPDATE OFFSET: ${offset}`);
 
-    console.error(error);
-
-    throw new Error();
+    throw error;
   }
 }
 
@@ -115,9 +110,7 @@ export async function getVolume(id: number): Promise<APITypes.Volume> {
     console.error(`VOLUME REQUEST`);
     console.error(`ID: ${id}`);
 
-    console.error(error);
-
-    throw new Error();
+    throw error;
   }
 }
 
@@ -140,9 +133,7 @@ export async function getCoverStream(path: string): Promise<Buffer> {
     console.error(`IMAGE REQUEST`);
     console.error("IMG_PATH: ", path);
 
-    console.error(error);
-
-    throw new Error();
+    throw error;
   }
 }
 
