@@ -125,6 +125,7 @@ RuRaColor.on(Events.ClientReady, async () => {
     setTimeout(() => {
       clearInterval(interval);
       sendMessagesIds.delete(message.id);
+      console.log("DELETING FROM CACHE ID: " + message.id);
     }, new Date(0).setHours(4, 1));
   }
 });
@@ -133,6 +134,8 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
   if (message.channel.id !== "800044270370684958") return;
 
   setTimeout(() => {
+    console.log(`MESSAGE ID: ${message.id} in [${[...sendMessagesIds].join(", ")}]`);
+
     if (!sendMessagesIds.has(message.id)) message.delete();
   }, 5_000);
 
