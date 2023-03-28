@@ -51,13 +51,14 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
         return;
       }
 
-      const titles: Map<string, APITypes.VolumeUpdates.Content> = new Map();
+      const titles: Set<string> = new Set();
 
-      for (const u of updates) titles.set(`${u.projectId}_${u.volumeId}`, u);
-
-      const sortedUpdates = [...titles.values()].sort(
-        (t1, t2) => new Date(t2.showTime).getTime() - new Date(t1.showTime).getTime() 
-      );
+      const sortedUpdates = updates
+        .filter((update) => {
+          const updateId = update.projectId + "_" + update.volumeId;
+          return !titles.has(updateId) && !!titles.add(updateId);
+        })
+        .sort((t1, t2) => new Date(t2.showTime).getTime() - new Date(t1.showTime).getTime());
 
       this.emit("update", sortedUpdates);
     } catch (e) {
