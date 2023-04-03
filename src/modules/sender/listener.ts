@@ -16,8 +16,6 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
   constructor() {
     super();
 
-    console.log("CREATE INSTANCE OF UPDATE LISTENER");
-
     this.DB = getDB();
   }
 

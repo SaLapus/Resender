@@ -1,13 +1,16 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import * as Discord from "discord.js";
 import { Events, GatewayIntentBits } from "discord.js";
 import * as dotenv from "dotenv";
 
 import fs from "node:fs/promises";
+import { PerformanceObserver, performance } from "node:perf_hooks";
 
 dotenv.config();
 
 import type * as APITypes from "./types/api";
 import type { IJSONStorage } from "./types/db";
+import awaitQueue from "./modules/awaitQueue";
 
 import getDB from "./modules/db";
 
@@ -15,7 +18,26 @@ import Listener from "./modules/sender/listener";
 import type { UpdateInfo } from "./modules/sender/update";
 import getTextUpdate from "./modules/sender/update";
 
+const nodeEnv = process.env["NODE_ENV"]!;
+const updateChannelId =
+  nodeEnv === "production"
+    ? process.env["PROD_UPDATE_CHANNEL"]
+    : process.env["DEBUG_UPDATE_CHANNEL"];
+const hookId =
+  nodeEnv === "production" ? process.env["HOOK_RURA_ID"]! : process.env["HOOK_CAPTAINHOOK_ID"]!;
+const hookToken =
+  nodeEnv === "production"
+    ? process.env["HOOK_RURA_TOKEN"]!
+    : process.env["HOOK_CAPTAINHOOK_TOKEN"]!;
+
+const queue = new awaitQueue();
 const sendMessagesIds = new Set<string>();
+
+const obs = new PerformanceObserver((items) => {
+  items.getEntries().forEach((entry) => {
+    console.log(`${entry.name} duration: ${entry.duration}`);
+  });
+});
 
 const RuRaColor = new Discord.Client({
   intents: [
@@ -28,6 +50,7 @@ const RuRaColor = new Discord.Client({
 });
 
 RuRaColor.on(Events.Debug, (log) => {
+  if (nodeEnv !== "production") return;
   fs.writeFile(
     "./logs.txt",
     `${new Date()
@@ -50,42 +73,52 @@ RuRaColor.on(Events.Debug, (log) => {
 });
 
 RuRaColor.on(Events.ClientReady, async () => {
-  const hook = await RuRaColor.fetchWebhook(
-    (process.env["NODE_ENV"] as string) === "production"
-      ? (process.env["HOOK_RURA_ID"] as string)
-      : (process.env["HOOK_CAPTAINHOOK_ID"] as string),
-    (process.env["NODE_ENV"] as string) === "production"
-      ? (process.env["HOOK_RURA_TOKEN"] as string)
-      : (process.env["HOOK_CAPTAINHOOK_TOKEN"] as string)
-  );
+  const hook = await RuRaColor.fetchWebhook(hookId, hookToken);
 
   const DB: IJSONStorage = getDB();
   const UpdatesListener = new Listener();
 
   UpdatesListener.on("update", updateHandler);
+
   UpdatesListener.shedule();
 
   async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise<void> {
-    for (const u of updates) {
-      if (!u) continue;
+    try {
+      for (const u of updates) {
+        if (!u) continue;
 
-      const dateFrom = DB.getTime();
+        const dateFrom = DB.getTime();
 
-      if (!dateFrom) throw new Error("SL ERROR: BAD TIME --- DROP UPDATE");
+        if (!dateFrom) throw new Error("SL ERROR: BAD TIME --- DROP UPDATE");
 
-      const messageContent = await getTextUpdate({
-        projectID: u.projectId,
-        volumeID: u.volumeId,
-        dateFrom,
-      });
+        const messageContent = await getTextUpdate({
+          projectID: u.projectId,
+          volumeID: u.volumeId,
+          dateFrom,
+        });
 
-      const message = await sendUpdate(messageContent);
+        obs.observe({ type: "measure", buffered: true });
 
-      sendMessagesIds.add(message.id);
+        const entry = queue.add();
 
-      editMessage(message, messageContent);
+        try {
+          performance.mark("Before");
+          const message = await sendUpdate(messageContent);
+          performance.mark("After");
 
-      DB.setTime(new Date(u.showTime));
+          console.log("SENDED MESSAGE ID: ", message.id);
+          sendMessagesIds.add(message.id);
+
+          editMessage(message, messageContent);
+
+          DB.setTime(new Date(u.showTime));
+          performance.measure(`Sending message #${message.id}`, "Before", "After");
+        } finally {
+          entry.done();
+        }
+      }
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -131,18 +164,25 @@ RuRaColor.on(Events.ClientReady, async () => {
 });
 
 RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
-  if (message.channel.id !== "800044270370684958") return;
+  if (message.channel.id !== updateChannelId) return;
 
-  setTimeout(() => {
+  setTimeout(async () => {
+    await queue.wait();
     console.log(`MESSAGE ID: ${message.id} in [${[...sendMessagesIds].join(", ")}]`);
 
-    if (!sendMessagesIds.has(message.id)) message.delete();
-  }, 5_000);
+    if (!sendMessagesIds.has(message.id)) {
+      try {
+        await message.delete();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, 0);
 
-  const emojis = [message.guild?.emojis.cache.get("248177959192494080"), "❤", "🔥"];
+  const emojis = [message.guild?.emojis.cache.get(process.env["RURA_EMOJI_ID"]!), "❤", "🔥"];
 
   if (message.content.includes("arknarok"))
-    emojis.splice(1, 0, message.guild?.emojis.cache.get("324253416870117386"));
+    emojis.splice(1, 0, message.guild?.emojis.cache.get(process.env["ARK_EMOJI_ID"]!));
 
   const emojisPromises = emojis
     .filter((e) => e !== undefined)
@@ -152,13 +192,6 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
       console.log(es.map((e) => e.emoji.name).join("  ") ?? "NO EMOJIS");
     })
     .catch(console.error);
-});
-
-RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
-  if (message.channel.id !== "467084051027853324") return;
-  if (message.content !== "version") return;
-
-  message.reply(process.env["COMMIT_INFO"] ?? "");
 });
 
 RuRaColor.login(process.env["BOT_RURACOLOR_TOKEN"]);
