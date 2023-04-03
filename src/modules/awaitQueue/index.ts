@@ -1,33 +1,26 @@
 export default class awaitQueue {
-  private promises = new Map<number, QueueEntry>();
+  private entries: QueueEntry[] = [];
   private timeout?: NodeJS.Timeout;
 
-  private _counter = 0;
-  private set counter(i: number) {
-    this._counter = i % 1000;
-  }
-  private get counter(): number {
-    return this._counter;
-  }
-
   add(): QueueEntry {
-    const id = this.counter++;
     const entry = new QueueEntry();
-    this.promises.set(id, entry);
+    this.entries.push(entry);
 
     if (this.timeout) clearTimeout(this.timeout);
 
     this.timeout = setTimeout(() => {
-      this.promises.forEach((e) => e.done());
+      this.entries.forEach((e) => e.done());
+      this.entries = [];
     }, 60_000);
 
     return entry;
   }
 
   async wait(): Promise<void> {
-    if (this.promises.size === 0) await Promise.resolve();
+    if (this.entries.length === 0) await Promise.resolve();
 
-    await Promise.allSettled([...this.promises.values()].map((e) => e.promise));
+    await Promise.allSettled(this.entries.map((e) => e.promise));
+    this.entries.shift();
   }
 }
 
