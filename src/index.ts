@@ -97,7 +97,7 @@ RuRaColor.on(Events.ClientReady, async () => {
           dateFrom,
         });
 
-        obs.observe({ type: "measure", buffered: true });
+        obs.observe({ type: "measure" });
 
         const entry = queue.add();
 
