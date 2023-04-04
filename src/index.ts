@@ -21,15 +21,10 @@ import getTextUpdate from "./modules/sender/update";
 const nodeEnv = process.env["NODE_ENV"]!;
 const updateChannelId =
   nodeEnv === "production"
-    ? process.env["PROD_UPDATE_CHANNEL"]
-    : process.env["DEBUG_UPDATE_CHANNEL"];
+    ? process.env["PROD_UPDATE_CHANNEL"]!
+    : process.env["DEBUG_UPDATE_CHANNEL"]!;
 const hookId =
   nodeEnv === "production" ? process.env["HOOK_RURA_ID"]! : process.env["HOOK_CAPTAINHOOK_ID"]!;
-const hookToken =
-  nodeEnv === "production"
-    ? process.env["HOOK_RURA_TOKEN"]!
-    : process.env["HOOK_CAPTAINHOOK_TOKEN"]!;
-
 const queue = new awaitQueue();
 const sendMessagesIds = new Set<string>();
 
@@ -73,13 +68,20 @@ RuRaColor.on(Events.Debug, (log) => {
 });
 
 RuRaColor.on(Events.ClientReady, async () => {
-  const hook = await RuRaColor.fetchWebhook(hookId, hookToken);
+  const channel = RuRaColor.channels.cache.get(updateChannelId);
+
+  if (!channel || channel.type !== Discord.ChannelType.GuildText)
+    throw "Unsupported type of channel";
+
+  const hooks = await channel.fetchWebhooks();
+
+  const hook = hooks.find((hook) => hook.id === hookId);
+  if (!hook) throw "Bad Hook ID: " + hookId;
 
   const DB: IJSONStorage = getDB();
   const UpdatesListener = new Listener();
 
   UpdatesListener.on("update", updateHandler);
-
   UpdatesListener.shedule();
 
   async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise<void> {
@@ -109,6 +111,13 @@ RuRaColor.on(Events.ClientReady, async () => {
           console.log("SENDED MESSAGE ID: ", message.id);
           sendMessagesIds.add(message.id);
 
+          // Slowdown for test
+          // if (nodeEnv !== "production") {
+          //   const sleep = (time: number) =>
+          //     new Promise<void>((res) => setTimeout(() => res(), time * 1000));
+          //   await sleep(30);
+          // }
+
           editMessage(message, messageContent);
 
           DB.setTime(new Date(u.showTime));
@@ -136,7 +145,7 @@ RuRaColor.on(Events.ClientReady, async () => {
 
     console.log("SENDING " + title.info.title);
 
-    return await hook.send(message);
+    return await hook!.send(message);
   }
 
   function editMessage(message: Discord.Message<boolean>, updateInfo: UpdateInfo) {
@@ -147,7 +156,7 @@ RuRaColor.on(Events.ClientReady, async () => {
         dateFrom: updateInfo.info.dateFrom,
       });
 
-      await hook.editMessage(message as unknown as Discord.Message, {
+      hook!.editMessage(message, {
         content: update,
         allowedMentions: {
           roles: [process.env["ROLE_TO_PING_ID"] as string],
@@ -167,6 +176,8 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
   if (message.channel.id !== updateChannelId) return;
 
   setTimeout(async () => {
+    console.log("GOT MESSAGE");
+
     await queue.wait();
     console.log(`MESSAGE ID: ${message.id} in [${[...sendMessagesIds].join(", ")}]`);
 
@@ -176,22 +187,22 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
       } catch (e) {
         console.error(e);
       }
+    } else {
+      const emojis = [message.guild?.emojis.cache.get(process.env["RURA_EMOJI_ID"]!), "❤", "🔥"];
+
+      if (message.content.includes("arknarok"))
+        emojis.splice(1, 0, message.guild?.emojis.cache.get(process.env["ARK_EMOJI_ID"]!));
+
+      const emojisPromises = emojis
+        .filter((e) => e !== undefined)
+        .map((e) => message.react(e as string | Discord.GuildEmoji));
+      Promise.all(emojisPromises)
+        .then((es) => {
+          console.log(es.map((e) => e.emoji.name).join("  ") ?? "NO EMOJIS");
+        })
+        .catch(console.error);
     }
   }, 0);
-
-  const emojis = [message.guild?.emojis.cache.get(process.env["RURA_EMOJI_ID"]!), "❤", "🔥"];
-
-  if (message.content.includes("arknarok"))
-    emojis.splice(1, 0, message.guild?.emojis.cache.get(process.env["ARK_EMOJI_ID"]!));
-
-  const emojisPromises = emojis
-    .filter((e) => e !== undefined)
-    .map((e) => message.react(e as string | Discord.GuildEmoji));
-  Promise.all(emojisPromises)
-    .then((es) => {
-      console.log(es.map((e) => e.emoji.name).join("  ") ?? "NO EMOJIS");
-    })
-    .catch(console.error);
 });
 
 RuRaColor.login(process.env["BOT_RURACOLOR_TOKEN"]);
