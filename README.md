@@ -1,6 +1,6 @@
 ## ReSender
 
-Simple bot that sends updates from <a href="http://ruranobe.ru/">RuRanobe</a> in Discord.
+Simple bot that sends updates from <a href="http://ruranobe.ru/">RuRanobe</a> to Discord.
 
 It works in 3 parts:
 
