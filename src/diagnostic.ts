@@ -1,55 +1,77 @@
 import diagnosticsChannel from "diagnostics_channel";
 
+import fs from "node:fs/promises";
+
+const log = (...message: string[]) => {
+  const now = new Date();
+  const locale = now
+    .toLocaleDateString("ru-ru", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+
+      formatMatcher: "basic",
+    })
+    .replaceAll(".", "/");
+
+  const time = locale + "." + now.getMilliseconds();
+  fs.writeFile("./logs.txt", `${time}: ${message.join("")}\n`, {
+    encoding: "utf-8",
+    flag: "a",
+  });
+};
+
 diagnosticsChannel.channel("undici:request:create").subscribe(({ request }: any) => {
-  console.log("CREATE REQUEST");
-  console.log("- REQUEST");
-  console.log("- - method: ", request.method);
-  console.log("- - path: ", request.path);
-  console.log("- - completed: ", request.completed);
+  log(`
+CREATE REQUEST
+- REQUEST
+- - method: ${request.method}
+- - path: ${request.path}
+- - completed: ${request.completed}`);
 });
 
 diagnosticsChannel.channel("undici:request:bodySent").subscribe(({ request }: any) => {
-  console.log("BODY SENT");
-  console.log("- REQUEST");
-  console.log("- - method: ", request.method);
-  console.log("- - path: ", request.path);
-  console.log("- - completed: ", request.completed);
+  log(`
+BODY SENT
+- REQUEST
+- - method: ${request.method}
+- - path: ${request.path}
+- - completed: ${request.completed}`);
 });
 
 diagnosticsChannel.channel("undici:request:headers").subscribe(({ request, response }: any) => {
-  console.log("HEADERS RECEIVED");
-  console.log("- REQUEST");
-  console.log("- - method: ", request.method);
-  console.log("- - path: ", request.path);
-  console.log("- - completed: ", request.completed);
-
-  console.log("- RESPONCE");
-  console.log("- - statusCode: ", response.statusCode);
-  // request is the same object undici:request:create
-  // console.log('statusCode', response.statusCode)
-  // console.log(response.statusText)
-  // // response.headers are buffers.
-  // console.log(response.headers.map((x: any) => x.toString()))
+  log(`
+HEADERS RECEIVED
+- REQUEST
+- - method: ${request.method}
+- - path: ${request.path}
+- - completed: ${request.completed}
+- RESPONCE
+- - statusCode: ${response.statusCode}`);
 });
 
 diagnosticsChannel.channel("undici:request:trailers").subscribe(({ request, trailers }: any) => {
-  console.log("BODY RECEIVED");
-  console.log("- REQUEST");
-  console.log("- - method: ", request.method);
-  console.log("- - path: ", request.path);
-  console.log("- - completed: ", request.completed);
-
-  console.log("- TRAILERS");
-  console.log("- - content: ", JSON.stringify(trailers));
+  log(`
+BODY RECEIVED
+- REQUEST
+- - method: ${request.method}
+- - path: ${request.path}
+- - completed: ${request.completed}
+- TRAILERS
+- - content: ${JSON.stringify(trailers)}`);
 });
 
 diagnosticsChannel.channel("undici:request:error").subscribe(({ request, error }: any) => {
-  console.log("ERROR EVENT");
-  console.log("- REQUEST");
-  console.log("- - method: ", request.method);
-  console.log("- - path: ", request.path);
-  console.log("- - completed: ", request.completed);
-
-  console.log("- ERROR");
-  console.log(error);
+  log(`
+ERROR EVENT
+- REQUEST
+- - method: ${request.method}
+- - path: ${request.path}
+- - completed: ${request.completed}
+- ERROR
+${error}`);
 });
