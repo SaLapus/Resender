@@ -3,13 +3,13 @@ import * as Discord from "discord.js";
 import { Events, GatewayIntentBits } from "discord.js";
 import * as dotenv from "dotenv";
 
-import fs from "node:fs/promises";
 import { PerformanceObserver, performance } from "node:perf_hooks";
 
 dotenv.config();
 
 import type * as APITypes from "./types/api";
 import type { IJSONStorage } from "./types/db";
+
 import awaitQueue from "./modules/awaitQueue";
 
 import getDB from "./modules/db";
@@ -17,6 +17,8 @@ import getDB from "./modules/db";
 import Listener from "./modules/sender/listener";
 import type { UpdateInfo } from "./modules/sender/update";
 import getTextUpdate from "./modules/sender/update";
+
+import "./diagnostic";
 
 const nodeEnv = process.env["NODE_ENV"]!;
 const updateChannelId =
@@ -30,9 +32,11 @@ const sendMessagesIds = new Set<string>();
 
 const obs = new PerformanceObserver((items) => {
   items.getEntries().forEach((entry) => {
-    console.log(`${entry.name} duration: ${entry.duration}`);
+    console.log(`Measure: ${entry.name} duration: ${entry.duration}`);
   });
 });
+
+obs.observe({ type: "measure" });
 
 const RuRaColor = new Discord.Client({
   intents: [
@@ -44,28 +48,7 @@ const RuRaColor = new Discord.Client({
   ],
 });
 
-RuRaColor.on(Events.Debug, (log) => {
-  if (nodeEnv !== "production") return;
-  fs.writeFile(
-    "./logs.txt",
-    `${new Date()
-      .toLocaleDateString("ru-ru", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        formatMatcher: "basic",
-      })
-      .replaceAll(".", "/")}: ${log}\n`,
-    {
-      encoding: "utf-8",
-      flag: "a",
-    }
-  );
-});
+// RuRaColor.on(Events.Debug, () => {});
 
 RuRaColor.on(Events.ClientReady, async () => {
   const channel = RuRaColor.channels.cache.get(updateChannelId);
@@ -83,6 +66,7 @@ RuRaColor.on(Events.ClientReady, async () => {
 
   UpdatesListener.on("update", updateHandler);
   UpdatesListener.shedule();
+  // UpdatesListener.getLastUpdate();
 
   async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise<void> {
     try {
@@ -99,8 +83,6 @@ RuRaColor.on(Events.ClientReady, async () => {
           dateFrom,
         });
 
-        obs.observe({ type: "measure" });
-
         const entry = queue.add();
 
         try {
@@ -110,13 +92,6 @@ RuRaColor.on(Events.ClientReady, async () => {
 
           console.log("SENDED MESSAGE ID: ", message.id);
           sendMessagesIds.add(message.id);
-
-          // Slowdown for test
-          // if (nodeEnv !== "production") {
-          //   const sleep = (time: number) =>
-          //     new Promise<void>((res) => setTimeout(() => res(), time * 1000));
-          //   await sleep(30);
-          // }
 
           editMessage(message, messageContent);
 
@@ -137,7 +112,7 @@ RuRaColor.on(Events.ClientReady, async () => {
     const message: Discord.WebhookMessageCreateOptions = {
       content: update,
       allowedMentions: {
-        roles: [process.env["ROLE_TO_PING_ID"] as string],
+        roles: [process.env["ROLE_TO_PING_ID"]!],
       },
     };
 
@@ -159,7 +134,7 @@ RuRaColor.on(Events.ClientReady, async () => {
       hook!.editMessage(message, {
         content: update,
         allowedMentions: {
-          roles: [process.env["ROLE_TO_PING_ID"] as string],
+          roles: [process.env["ROLE_TO_PING_ID"]!],
         },
       });
     }, 15 * 60 * 1000);
@@ -176,8 +151,6 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
   if (message.channel.id !== updateChannelId) return;
 
   setTimeout(async () => {
-    console.log("GOT MESSAGE");
-
     await queue.wait();
     console.log(`MESSAGE ID: ${message.id} in [${[...sendMessagesIds].join(", ")}]`);
 
@@ -195,7 +168,7 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
 
       const emojisPromises = emojis
         .filter((e) => e !== undefined)
-        .map((e) => message.react(e as string | Discord.GuildEmoji));
+        .map((e) => message.react(e!));
       Promise.all(emojisPromises)
         .then((es) => {
           console.log(es.map((e) => e.emoji.name).join("  ") ?? "NO EMOJIS");
