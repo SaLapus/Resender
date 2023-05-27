@@ -66,7 +66,7 @@ RuRaColor.on(Events.ClientReady, async () => {
 
   UpdatesListener.on("update", updateHandler);
   UpdatesListener.shedule();
-  // UpdatesListener.getLastUpdate();
+  if (nodeEnv === "debug") UpdatesListener.getLastUpdate();
 
   async function updateHandler(updates: APITypes.VolumeUpdates.Content[]): Promise<void> {
     try {
@@ -166,9 +166,7 @@ RuRaColor.on(Events.MessageCreate, async (message: Discord.Message) => {
       if (message.content.includes("arknarok"))
         emojis.splice(1, 0, message.guild?.emojis.cache.get(process.env["ARK_EMOJI_ID"]!));
 
-      const emojisPromises = emojis
-        .filter((e) => e !== undefined)
-        .map((e) => message.react(e!));
+      const emojisPromises = emojis.filter((e) => e !== undefined).map((e) => message.react(e!));
       Promise.all(emojisPromises)
         .then((es) => {
           console.log(es.map((e) => e.emoji.name).join("  ") ?? "NO EMOJIS");
