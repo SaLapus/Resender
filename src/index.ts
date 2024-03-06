@@ -18,7 +18,7 @@ import Listener from "./modules/sender/listener";
 import type { UpdateInfo } from "./modules/sender/update";
 import getTextUpdate from "./modules/sender/update";
 
-import "./diagnostic";
+// import "./diagnostic";
 
 const nodeEnv = process.env["NODE_ENV"]!;
 const updateChannelId =

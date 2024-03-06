@@ -18,7 +18,7 @@ export async function getProject(id: number): Promise<APITypes.Project> {
   try {
     const responce = await needle(
       "post",
-      `${process.env["HOST_VOLUME"]}/api/site/v2/graphql`,
+      `https://${process.env["HOST_VOLUME"]}/api/site/v2/graphql`,
       {
         operationName: "Project",
         variables: { id },
@@ -53,7 +53,7 @@ export async function getUpdate(offset = 1): Promise<APITypes.VolumeUpdates.Cont
   try {
     const responce = await needle(
       "post",
-      `${process.env["HOST_VOLUME"]}/api/site/v2/graphql`,
+      `https://${process.env["HOST_VOLUME"]}/api/site/v2/graphql`,
       {
         operationName: "VolumeUpdates",
         variables: { number: offset },
@@ -89,7 +89,7 @@ export async function getVolume(id: number): Promise<APITypes.Volume> {
   try {
     const responce = await needle(
       "post",
-      `${process.env["HOST_VOLUME"]}/api/site/v2/graphql`,
+      `https://${process.env["HOST_VOLUME"]}/api/site/v2/graphql`,
       {
         operationName: "Volume",
         variables: { id },
@@ -122,7 +122,7 @@ export async function getCoverStream(path: string): Promise<Buffer> {
   }
 
   try {
-    const responce = await needle("get", `${process.env["HOST_IMAGE"]}${path}`);
+    const responce = await needle("get", `https://${process.env["HOST_IMAGE"]}${path}`);
 
     if (responce.errored) throw responce.errored;
     if (responce.statusCode && !(200 <= responce.statusCode && responce.statusCode < 300))
