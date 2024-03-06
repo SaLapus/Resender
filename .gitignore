@@ -1,7 +1,10 @@
-/.env
+/.vscode
 /assets/db
 /js
 /node_modules
-/package-lock.json
-/.vscode
+
+.env
 logs.txt
+package-lock.json
+
+*.lock

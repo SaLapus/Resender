@@ -6,5 +6,5 @@ module.exports = {
   coveragePathIgnorePatterns: ["\\\\node_modules\\\\"],
 
   // The glob patterns Jest uses to detect test files
-  testMatch: ["**/test/**/*.test.js"],
+  testMatch: ["**/test/**/*.test.ts"],
 };
