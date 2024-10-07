@@ -60,6 +60,7 @@ export default class UpdatesClient extends EventEmitter implements ReSender.Clie
 
       this.emit("update", sortedUpdates);
     } catch (e) {
+      console.error(e);
       return;
     }
   }
