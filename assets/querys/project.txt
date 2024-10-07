@@ -2,6 +2,9 @@ query Project($id: Int) {
     project(project: {id: $id}) {
         id
         fullUrl
+        covers {
+            url
+        }
         title
         shortDescription
     }

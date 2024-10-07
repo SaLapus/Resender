@@ -42,7 +42,7 @@ export default async function getTextUpdate({
   const url: string = getURL(volume.fullUrl, project.fullUrl);
   const annotation: string = getAnnotation(volume.annotation?.text, project.shortDescription);
   const staff: string = getStaff(volume.staff);
-  const cover = await getCover(volume.covers?.shift()?.url);
+  const cover = await getCover(volume.covers?.shift()?.url || project.covers?.shift()?.url);
 
   const head = [title, chapters].filter((e) => !!e).join(" - ");
   const update = [head, doneStatus, url, annotation, staff]
